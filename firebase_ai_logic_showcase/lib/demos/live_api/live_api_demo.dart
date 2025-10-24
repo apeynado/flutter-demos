@@ -63,11 +63,6 @@ class _LiveAPIDemoState extends ConsumerState<LiveAPIDemo> {
       onImageGenerated: _onImageGenerated,
       onError: _showErrorSnackBar,
     );
-
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      _initializeAudio();
-      _initializeVideo();
-    });
   }
 
   @override
@@ -115,6 +110,14 @@ class _LiveAPIDemoState extends ConsumerState<LiveAPIDemo> {
   }
 
   Future<void> startCall() async {
+    // Initialize audio and video streams if they haven't been already.
+    if (!_audioIsInitialized) {
+      await _initializeAudio();
+    }
+    if (!_videoIsInitialized) {
+      await _initializeVideo();
+    }
+
     // Initialize the camera controller here to ensure it's fresh for each call.
     // This prevents a bug where the camera preview freezes on subsequent calls.
     if (_videoIsInitialized) {
@@ -245,39 +248,51 @@ class _LiveAPIDemoState extends ConsumerState<LiveAPIDemo> {
     final audioInput = _audioInput;
     final videoInput = _videoInput;
 
-    return Scaffold(
-      backgroundColor: Theme.of(context).colorScheme.surface,
-      appBar: const LiveApiDemoAppBar(),
-      body: LiveApiBody(
-        cameraIsActive: _cameraIsActive,
-        cameraController: videoInput.controllerInitialized
-            ? videoInput.cameraController
-            : null,
-        settingUpLiveSession: _isConnecting,
-        loadingImage: _loadingImage,
-      ),
-      bottomNavigationBar: BottomBar(
-        children: [
-          FlipCameraButton(
-            onPressed: _cameraIsActive && videoInput.cameras.length > 1
-                ? videoInput.flipCamera
-                : null,
+    return ListenableBuilder(
+      listenable: audioInput,
+      builder: (context, child) {
+        return Scaffold(
+          backgroundColor: Theme.of(context).colorScheme.surface,
+          appBar: const LiveApiDemoAppBar(),
+          body: Column(
+            children: [
+              Expanded(
+                child: LiveApiBody(
+                  cameraIsActive: _cameraIsActive,
+                  cameraController: videoInput.controllerInitialized
+                      ? videoInput.cameraController
+                      : null,
+                  settingUpLiveSession: _isConnecting,
+                  loadingImage: _loadingImage,
+                ),
+              ),
+              BottomBar(
+                children: [
+                  FlipCameraButton(
+                    onPressed: _cameraIsActive && videoInput.cameras.length > 1
+                        ? videoInput.flipCamera
+                        : null,
+                  ),
+                  VideoButton(
+                      isActive: _cameraIsActive, onPressed: toggleVideoStream),
+                  AudioVisualizer(
+                    audioStreamIsActive: _isCallActive,
+                    amplitudeStream: audioInput.amplitudeStream,
+                  ),
+                  MuteButton(
+                    isMuted: audioInput.isPaused,
+                    onPressed: _isCallActive ? toggleMuteInput : null,
+                  ),
+                  CallButton(
+                    isActive: _isCallActive,
+                    onPressed: toggleCall,
+                  ),
+                ],
+              ),
+            ],
           ),
-          VideoButton(isActive: _cameraIsActive, onPressed: toggleVideoStream),
-          AudioVisualizer(
-            audioStreamIsActive: _isCallActive,
-            amplitudeStream: audioInput.amplitudeStream,
-          ),
-          MuteButton(
-            isMuted: audioInput.isPaused,
-            onPressed: _isCallActive ? toggleMuteInput : null,
-          ),
-          CallButton(
-            isActive: _isCallActive,
-            onPressed: _audioIsInitialized ? toggleCall : null,
-          ),
-        ],
-      ),
+        );
+      },
     );
   }
 }

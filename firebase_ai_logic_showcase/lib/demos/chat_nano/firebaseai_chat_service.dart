@@ -18,7 +18,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../shared/app_state.dart';
 import '../../shared/firebaseai_imagen_service.dart';
-import './models/models.dart';
+import './models/chat_response.dart';
+import './models/gemini_model_nano.dart';
 
 /// A service that handles all communication with the Firebase AI Gemini API
 /// for the Chat Demo.
@@ -30,20 +31,23 @@ import './models/models.dart';
 ///
 /// For more information, see the official documentation:
 /// https://firebase.google.com/docs/ai-logic/chat?api=dev
-class ChatService {
+class ChatServiceNano {
   final WidgetRef _ref;
-  final GeminiModel _gemini;
+  ChatServiceNano(this._ref);
 
-  ChatService(this._ref, this._gemini);
-
+  GeminiModel? _gemini = geminiModels.selectedModel;
   late ChatSession _chat;
 
   void init() {
-    _chat = _gemini.model.startChat();
+    var gemini = _gemini;
+    if (gemini != null) {
+      _chat = gemini.model.startChat();
+    }
   }
 
   void changeModel(String modelName) {
-    // This is now handled in the UI layer
+    _gemini = geminiModels.selectModel(modelName);
+    init();
   }
 
   Future<ChatResponse> sendMessage(Content message) async {

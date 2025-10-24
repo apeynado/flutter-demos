@@ -13,202 +13,83 @@
 // limitations under the License.
 
 import 'package:flutter/material.dart';
-import 'package:url_launcher/link.dart';
-import 'shared/ui/app_frame.dart';
 import 'demos/chat/chat_demo.dart';
+import 'demos/chat_nano/chat_nano_demo.dart';
 import 'demos/multimodal/multimodal_demo.dart';
-import './demos/imagen/imagen_demo.dart';
-import './demos/live_api/live_api_demo.dart';
-import 'firebase_options.dart';
-import 'shared/ui/blaze_warning.dart';
+import 'demos/live_api/live_api_demo.dart';
 
-class Demo {
-  final String name;
-  final String description;
-  final Widget icon;
-  final Widget page;
-
-  Demo({
-    required this.name,
-    required this.description,
-    required this.icon,
-    required this.page,
-  });
-}
-
-List<Demo> demos = [
-  Demo(
-    name: 'Gemini Live API',
-    description: 'Real-time bidirectional audio & video streaming with Gemini.',
-    icon: Icon(size: 32, Icons.video_call),
-    page: LiveAPIDemo(),
-  ),
-  Demo(
-    name: 'Multimodal Prompt',
-    description:
-        'Ask a Gemini model about an image, audio, video, or PDF file.',
-    icon: Icon(size: 32, Icons.attach_file),
-    page: MultimodalDemo(),
-  ),
-  Demo(
-    name: 'Create & Edit Images with Nano Banana *',
-    description:
-        'Chat with a Gemini model, including a chat history, tool calling, and even image generation.',
-    icon: Text(style: TextStyle(fontSize: 28), '🍌'),
-    page: ChatDemo(),
-  ),
-];
-
-class DemoHomeScreen extends StatelessWidget {
+class DemoHomeScreen extends StatefulWidget {
   const DemoHomeScreen({super.key});
 
-  void showMoreInfo(BuildContext context) {
-    showModalBottomSheet(
-      context: context,
-      builder: (context) => SizedBox(
-        width: double.infinity,
-        child: Scaffold(
-          appBar: AppBar(
-            automaticallyImplyLeading: false,
-            title: Text('Questions or Feedback?'),
-            actions: [
-              IconButton(
-                icon: Icon(Icons.close),
-                onPressed: () => Navigator.pop(context),
-              ),
-            ],
-          ),
-          body: Center(
-            child: ConstrainedBox(
-              constraints: BoxConstraints(maxWidth: 400),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.center,
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  RichText(
-                    textAlign: TextAlign.center,
-                    text: TextSpan(
-                      style: Theme.of(context).textTheme.bodyMedium,
-                      text:
-                          'Have features you want to see in the app? Please file an issue for us at: ',
-                      children: [
-                        WidgetSpan(
-                          baseline: TextBaseline.ideographic,
-                          alignment: PlaceholderAlignment.top,
-                          child: Link(
-                            uri: Uri.parse(
-                              'https://github.com/flutter/demos/issues',
-                            ),
-                            target: LinkTarget.blank,
-                            builder: (context, followLink) => GestureDetector(
-                              onTap: followLink,
-                              child: Text(
-                                style: Theme.of(context).textTheme.bodyMedium!
-                                    .copyWith(
-                                      fontWeight: FontWeight.bold,
-                                      height: 1.15,
-                                      decoration: TextDecoration.underline,
-                                      color: Theme.of(
-                                        context,
-                                      ).colorScheme.primary,
-                                    ),
-                                'github.com/flutter/demos/issues',
-                              ),
-                            ),
-                          ),
-                        ),
-                        TextSpan(text: '.'),
-                      ],
-                    ),
-                  ),
-                  SizedBox.square(dimension: 32),
-                  Text(
-                    style: TextStyle(
-                      color: Theme.of(context).colorScheme.onSurfaceVariant,
-                    ),
-                    textAlign: TextAlign.center,
-                    'This app was made with ❤️\nby the Flutter & Firebase AI Logic Teams',
-                  ),
-                ],
-              ),
-            ),
-          ),
-        ),
-      ),
-    );
+  @override
+  State<DemoHomeScreen> createState() => _DemoHomeScreenState();
+}
+
+class _DemoHomeScreenState extends State<DemoHomeScreen> {
+  int _selectedIndex = 0;
+  final GlobalKey<ChatDemoNanoState> _chatNanoKey = GlobalKey();
+  bool _nanoPickerHasBeenShown = false;
+
+  late final List<Widget> _demoPages;
+
+  @override
+  void initState() {
+    super.initState();
+    _demoPages = <Widget>[
+      const ChatDemo(),
+      const LiveAPIDemo(),
+      ChatDemoNano(key: _chatNanoKey),
+      const MultimodalDemo(),
+    ];
+  }
+
+  void _onItemTapped(int index) {
+    if (index == 2 && !_nanoPickerHasBeenShown) {
+      _chatNanoKey.currentState?.showModelPicker();
+      _nanoPickerHasBeenShown = true;
+    }
+    setState(() {
+      _selectedIndex = index;
+    });
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        backgroundColor: Colors.transparent,
-        leading: Padding(
-          padding: EdgeInsets.fromLTRB(16, 8, 4, 8),
-          child: Image.asset('assets/firebase-ai-logic.png'),
-        ),
-        title: Text(
-          style: Theme.of(context).textTheme.titleLarge,
-          'Flutter AI Playground',
-        ),
-        actions: [
-          Padding(
-            padding: EdgeInsets.fromLTRB(4, 8, 16, 8),
-            child: IconButton(
-              icon: Icon(Icons.info_outline),
-              onPressed: () => showMoreInfo(context),
+      body: Row(
+        children: <Widget>[
+          NavigationRail(
+            selectedIndex: _selectedIndex,
+            onDestinationSelected: _onItemTapped,
+            labelType: NavigationRailLabelType.all,
+            destinations: const <NavigationRailDestination>[
+              NavigationRailDestination(
+                icon: Icon(Icons.chat),
+                label: Text('Chat'),
+              ),
+              NavigationRailDestination(
+                icon: Icon(Icons.video_chat),
+                label: Text('Live API'),
+              ),
+              NavigationRailDestination(
+                icon: Icon(Icons.chat),
+                label: Text('Chat (Nano Banana) 🍌'),
+              ),
+              NavigationRailDestination(
+                icon: Icon(Icons.photo_library),
+                label: Text('Multimodal'),
+              ),
+            ],
+          ),
+          const VerticalDivider(thickness: 1, width: 1),
+          // This is the main content.
+          Expanded(
+            child: IndexedStack(
+              index: _selectedIndex,
+              children: _demoPages,
             ),
           ),
         ],
-      ),
-      body: AppFrame(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Padding(
-              padding: EdgeInsets.symmetric(horizontal: 32, vertical: 16),
-              child: Text(
-                style: Theme.of(context).textTheme.bodyLarge,
-                textAlign: TextAlign.center,
-                "Build AI features in your Flutter apps – use the Firebase AI Logic SDK to access Google's AI models directly from your app.",
-              ),
-            ),
-            Expanded(
-              child: ListView.builder(
-                padding: EdgeInsets.all(8),
-                itemBuilder: (context, index) {
-                  final demo = demos[index];
-
-                  return Padding(
-                    padding: EdgeInsets.all(8),
-                    child: ListTile(
-                      onTap: () => Navigator.push(
-                        context,
-                        MaterialPageRoute(builder: (context) => demo.page),
-                      ),
-                      shape: RoundedSuperellipseBorder(
-                        borderRadius: BorderRadiusGeometry.circular(16),
-                      ),
-                      leading: demo.icon,
-                      title: Text(
-                        demo.name,
-                        style: TextStyle(fontWeight: FontWeight.bold),
-                      ),
-                      subtitle: Text(demo.description),
-                      tileColor: Theme.of(context).colorScheme.primaryContainer,
-                      trailing: Icon(
-                        Icons.arrow_forward,
-                        color: Theme.of(context).colorScheme.primaryFixedDim,
-                      ),
-                    ),
-                  );
-                },
-                itemCount: demos.length,
-              ),
-            ),
-            BlazeFooter(),
-          ],
-        ),
       ),
     );
   }

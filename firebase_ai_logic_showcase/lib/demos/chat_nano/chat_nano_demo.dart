@@ -25,18 +25,18 @@ import '../../shared/ui/app_spacing.dart';
 import './ui_components/ui_components.dart';
 import './firebaseai_chat_service.dart';
 import 'ui_components/model_picker.dart';
-import './models/models.dart';
+import './models/gemini_model_nano.dart';
 
-class ChatDemo extends ConsumerStatefulWidget {
-  const ChatDemo({super.key});
+class ChatDemoNano extends ConsumerStatefulWidget {
+  const ChatDemoNano({super.key});
 
   @override
-  ConsumerState<ChatDemo> createState() => _ChatDemoState();
+  ConsumerState<ChatDemoNano> createState() => ChatDemoNanoState();
 }
 
-class _ChatDemoState extends ConsumerState<ChatDemo> {
+class ChatDemoNanoState extends ConsumerState<ChatDemoNano> {
   // Service for interacting with the Gemini API.
-  late final ChatService _chatService;
+  late final ChatServiceNano _chatService;
 
   // UI State
   final List<MessageData> _messages = <MessageData>[];
@@ -45,18 +45,16 @@ class _ChatDemoState extends ConsumerState<ChatDemo> {
   Uint8List? _attachment;
   final ScrollController _scrollController = ScrollController();
   bool _loading = false;
+  OverlayPortalController opController = OverlayPortalController();
 
   @override
   void initState() {
     super.initState();
-    final model = geminiModels.selectModel('gemini-2.5-flash');
-    _chatService = ChatService(ref, model);
+    _chatService = ChatServiceNano(ref);
+    geminiModels.selectModel('gemini-2.5-flash-image-preview');
     _chatService.init();
     _userTextInputController.text =
-        'Hey Gemini! Can you set the app color to purple?';
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      sendMessage(_userTextInputController.text);
-    });
+        'Hot air balloons rising over the San Francisco Bay at golden hour with a view of the Golden Gate Bridge. Make it anime style.';
   }
 
   @override
@@ -162,12 +160,37 @@ class _ChatDemoState extends ConsumerState<ChatDemo> {
     }
   }
 
+  void showModelPicker() {
+    showDialog(
+      context: context,
+      builder: (context) {
+        return ModelPicker(
+          selectedModel: geminiModels.selectedModel,
+          onSelected: (value) {
+            _chatService.changeModel(value);
+            setState(() {
+              _userTextInputController.text =
+                  geminiModels.selectedModel.defaultPrompt;
+              _messages.clear();
+            });
+          },
+        );
+      },
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
         backgroundColor: Colors.transparent,
-        title: const Text('Chat'),
+        title: const Text('Chat (Nano Banana) 🍌'),
+        actions: [
+          IconButton(
+            onPressed: showModelPicker,
+            icon: const Icon(Icons.settings_outlined),
+          ),
+        ],
       ),
       body: Column(
         children: [
